@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QToolBar,
     QStatusBar,
+    QMessageBox
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
@@ -172,6 +173,11 @@ class InsertDialog(QDialog):
             db.commit()
             cur.close()
         main_window.load_data()
+        
+        confirmation_widget = QMessageBox()
+        confirmation_widget.setWindowTitle("Success")
+        confirmation_widget.setText("The record was added successfully!")
+        confirmation_widget.exec()
 
 
 class SearchDialog(QDialog):
@@ -218,6 +224,7 @@ class EditDialog(QDialog):
         student_name = main_window.table.item(index,1).text()
         course_name = main_window.table.item(index,2).text()
         phone_number = main_window.table.item(index,3).text()
+        self.student_id = main_window.table.item(index,0).text()
         
         # Create name widgets
         name_label = QLabel("Name")
@@ -255,12 +262,11 @@ class EditDialog(QDialog):
         name = self.name_line_edit.text()
         course = self.course_combo.itemText(self.course_combo.currentIndex())
         number = self.phone_line_edit.text()
-        student_id = main_window.table.item(main_window.table.currentRow(),0).text()
         
         with sqlite3.connect("database.db") as db:
             cur = db.cursor()
             cur.execute(
-                f'UPDATE students SET name="{name}", course="{course}",mobile={number} WHERE id = {student_id}'
+                f'UPDATE students SET name="{name}", course="{course}",mobile={number} WHERE id = {self.student_id}'
             )
             db.commit()
             cur.close()
@@ -271,6 +277,46 @@ class EditDialog(QDialog):
 class DeleteDialog(QDialog):
     def __init__(self) -> None:
         super().__init__()
+        self.setFixedHeight(100)
+        self.setFixedWidth(300)
+        
+        grid = QGridLayout()
+        
+        index = main_window.table.currentRow()
+        self.student_id = main_window.table.item(index,0).text()
+        
+        info_label = QLabel("Are you sure you want to delete this record?")
+        
+        confirm_button = QPushButton("Yes")
+        confirm_button.clicked.connect(self.delete)
+        
+        dismiss_button = QPushButton("No")
+        dismiss_button.clicked.connect(self.close)
+        
+        
+        grid.addWidget(info_label, 0, 0,1,0,Qt.AlignmentFlag.AlignCenter)
+        
+        grid.addWidget(confirm_button, 1, 0)
+        grid.addWidget(dismiss_button, 1, 1)
+        
+        self.setLayout(grid)
+    
+    def delete(self):
+        with sqlite3.connect("database.db") as db:
+            cur = db.cursor()
+            cur.execute(
+                f'DELETE FROM students WHERE id = {self.student_id}'
+            )
+            db.commit()
+            cur.close()
+        main_window.load_data()
+        self.close()
+        
+        confirmation_widget = QMessageBox()
+        confirmation_widget.setWindowTitle("Success")
+        confirmation_widget.setText("The record was deleted successfully!")
+        confirmation_widget.exec()
+        
         
 
 app = QApplication(sys.argv)
