@@ -10,9 +10,11 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem,
     QDialog,
     QComboBox,
-    QVBoxLayout
+    QVBoxLayout,
+    QToolBar,
+    QStatusBar,
 )
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 import sys, sqlite3
 
@@ -28,16 +30,16 @@ class MainWindow(QMainWindow):
         edit_menu_item = self.menuBar().addMenu("&Edit")
 
         # Create action that adds student
-        add_student_action = QAction("Add Student", self)
+        add_student_action = QAction(QIcon("icons/add.png"), "Add Student", self)
         add_student_action.triggered.connect(self.insert)
         file_menu_item.addAction(add_student_action)
 
         # Add 'about' action
         about_action = QAction("About", self)
         help_menu_item.addAction(about_action)
-        
+
         # Create 'search' action
-        search_action = QAction("Search",self)
+        search_action = QAction(QIcon("icons/search.png"), "Search", self)
         search_action.triggered.connect(self.search)
         edit_menu_item.addAction(search_action)
 
@@ -51,6 +53,22 @@ class MainWindow(QMainWindow):
         self.setFixedWidth(self.table.width())
         self.setFixedWidth(self.table.height())
 
+        # Create toolbar
+        toolbar = QToolBar()
+        toolbar.setMovable(True)
+        self.addToolBar(toolbar)
+        toolbar.addAction(add_student_action)
+        toolbar.addAction(search_action)
+
+        # Create status bar and add status bar elements
+        self.statusbar = QStatusBar()
+        self.setStatusBar(self.statusbar)
+
+        # Detect a cell click
+        self.table.cellClicked.connect(self.cell_clicked)
+
+        
+
     def load_data(self):
         self.table.setRowCount(0)
         with sqlite3.connect("database.db") as db:
@@ -62,14 +80,39 @@ class MainWindow(QMainWindow):
                     self.table.setItem(row, col, QTableWidgetItem(str(col_data)))
             cur.close()
 
+    def cell_clicked(self):
+        edit_btn = QPushButton("Edit Record")
+        edit_btn.clicked.connect(self.edit)
+        
+        del_btn = QPushButton("Delete Record")
+        del_btn.clicked.connect(self.delete)
+        
+        
+        for i in self.statusbar.findChildren(QPushButton):
+            self.statusbar.removeWidget(i)
+        
+        self.statusbar.addWidget(edit_btn)
+        self.statusbar.addWidget(del_btn)
+        
+        
+
     def insert(self):
+        # Initialize Dialog
         dialog = InsertDialog()
         dialog.exec()
-        
+
     def search(self):
+        # Initialize Dialog
         dialog = SearchDialog()
         dialog.exec()
 
+    def edit(self):
+        dialog = EditDialog()
+        dialog.exec()
+    
+    def delete(self):
+        dialog = DeleteDialog()
+        dialog.exec()
 
 class InsertDialog(QDialog):
     def __init__(self) -> None:
@@ -138,32 +181,41 @@ class SearchDialog(QDialog):
         self.setWindowTitle("Search Student")
         self.setFixedHeight(150)
         self.setFixedWidth(250)
-        
+
         # Creating layout
         layout = QVBoxLayout()
-        
+
         # Create field for student name
         self.name_line_edit = QLineEdit()
         self.name_line_edit.setPlaceholderText("Name")
-        
+
         # Create button for searching
         button = QPushButton("Search")
         button.clicked.connect(self.search_student)
-        
-        # Add widgets to layout 
+
+        # Add widgets to layout
         layout.addWidget(self.name_line_edit)
         layout.addWidget(button)
-        
+
         self.setLayout(layout)
-    
+
     def search_student(self):
         s_text = self.name_line_edit.text()
-        items = main_window.table.findItems(s_text,Qt.MatchFlag.MatchFixedString)
+        items = main_window.table.findItems(s_text, Qt.MatchFlag.MatchFixedString)
         for i in items:
             i.setSelected(True)
         self.close()
 
 
+class EditDialog(QDialog):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class DeleteDialog(QDialog):
+    def __init__(self) -> None:
+        super().__init__()
+        
 
 app = QApplication(sys.argv)
 main_window = MainWindow()
