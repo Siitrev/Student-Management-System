@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QToolBar,
     QStatusBar,
-    QMessageBox
+    QMessageBox,
 )
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
@@ -77,8 +77,6 @@ class MainWindow(QMainWindow):
         # Detect a cell click
         self.table.cellClicked.connect(self.cell_clicked)
 
-        
-
     def load_data(self):
         self.table.setRowCount(0)
         with sqlite3.connect("database.db") as db:
@@ -93,17 +91,16 @@ class MainWindow(QMainWindow):
     def cell_clicked(self):
         edit_btn = QPushButton("Edit Record")
         edit_btn.clicked.connect(self.edit)
-        
+
         del_btn = QPushButton("Delete Record")
         del_btn.clicked.connect(self.delete)
-        
-        
+
         for i in self.statusbar.findChildren(QPushButton):
             self.statusbar.removeWidget(i)
-        
+
         self.statusbar.addWidget(edit_btn)
         self.statusbar.addWidget(del_btn)
-    
+
     def load_course_data(self) -> tuple:
         with sqlite3.connect("database.db") as db:
             cur = db.cursor()
@@ -111,7 +108,7 @@ class MainWindow(QMainWindow):
             courses = (x[1] for x in cur.fetchall())
             cur.close()
         return courses
-        
+
     def insert(self):
         # Initialize Dialog
         dialog = InsertDialog()
@@ -125,7 +122,7 @@ class MainWindow(QMainWindow):
     def edit(self):
         dialog = EditDialog()
         dialog.exec()
-    
+
     def delete(self):
         dialog = DeleteDialog()
         dialog.exec()
@@ -186,7 +183,7 @@ class InsertDialog(QDialog):
             db.commit()
             cur.close()
         main_window.load_data()
-        
+
         confirmation_widget = QMessageBox()
         confirmation_widget.setWindowTitle("Success")
         confirmation_widget.setText("The record was added successfully!")
@@ -235,11 +232,11 @@ class EditDialog(QDialog):
 
         # Take data from selected row
         index = main_window.table.currentRow()
-        student_name = main_window.table.item(index,1).text()
-        course_name = main_window.table.item(index,2).text()
-        phone_number = main_window.table.item(index,3).text()
-        self.student_id = main_window.table.item(index,0).text()
-        
+        student_name = main_window.table.item(index, 1).text()
+        course_name = main_window.table.item(index, 2).text()
+        phone_number = main_window.table.item(index, 3).text()
+        self.student_id = main_window.table.item(index, 0).text()
+
         # Create name widgets
         name_label = QLabel("Name")
         self.name_line_edit = QLineEdit(student_name)
@@ -271,13 +268,13 @@ class EditDialog(QDialog):
         grid.addWidget(submit_btn, 3, 0, 1, 0)
 
         self.setLayout(grid)
-        
+
     def edit(self):
         # Data for overwrite
         name = self.name_line_edit.text()
         course = self.course_combo.itemText(self.course_combo.currentIndex())
         number = self.phone_line_edit.text()
-        
+
         # Update data in db
         with DatabaseConnection().connect() as db:
             cur = db.cursor()
@@ -295,49 +292,47 @@ class DeleteDialog(QDialog):
         super().__init__()
         self.setFixedHeight(100)
         self.setFixedWidth(300)
-        
+
         grid = QGridLayout()
-        
+
         # Take current student id
         index = main_window.table.currentRow()
-        self.student_id = main_window.table.item(index,0).text()
-        
-        #Create label
+        self.student_id = main_window.table.item(index, 0).text()
+
+        # Create label
         info_label = QLabel("Are you sure you want to delete this record?")
-        
+
         # Create buttons
         confirm_button = QPushButton("Yes")
         confirm_button.clicked.connect(self.delete)
-        
+
         dismiss_button = QPushButton("No")
         dismiss_button.clicked.connect(self.close)
-        
+
         # Add widgets to layout
-        grid.addWidget(info_label, 0, 0,1,0,Qt.AlignmentFlag.AlignCenter)
-        
+        grid.addWidget(info_label, 0, 0, 1, 0, Qt.AlignmentFlag.AlignCenter)
+
         grid.addWidget(confirm_button, 1, 0)
         grid.addWidget(dismiss_button, 1, 1)
-        
+
         self.setLayout(grid)
-    
+
     def delete(self):
         # Delete row from db
         with DatabaseConnection().connect() as db:
             cur = db.cursor()
-            cur.execute(
-                f'DELETE FROM students WHERE id = {self.student_id}'
-            )
+            cur.execute(f"DELETE FROM students WHERE id = {self.student_id}")
             db.commit()
             cur.close()
         main_window.load_data()
         self.close()
-        
+
         # Show confirmation message
         confirmation_widget = QMessageBox()
         confirmation_widget.setWindowTitle("Success")
         confirmation_widget.setText("The record was deleted successfully!")
         confirmation_widget.exec()
-        
+
 
 class AboutDialog(QMessageBox):
     def __init__(self) -> None:
