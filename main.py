@@ -2,7 +2,6 @@ from PyQt6.QtWidgets import (
     QApplication,
     QGridLayout,
     QLabel,
-    QWidget,
     QLineEdit,
     QPushButton,
     QMainWindow,
@@ -20,6 +19,15 @@ from PyQt6.QtCore import Qt
 import sys, sqlite3
 
 
+class DatabaseConnection:
+    def __init__(self, database_file="database.db"):
+        self.database_file = database_file
+
+    # Estblish database connection
+    def connect(self):
+        return sqlite3.connect(self.database_file)
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -27,8 +35,8 @@ class MainWindow(QMainWindow):
 
         # Create menu bar items
         file_menu_item = self.menuBar().addMenu("&File")
-        help_menu_item = self.menuBar().addMenu("&Help")
         edit_menu_item = self.menuBar().addMenu("&Edit")
+        help_menu_item = self.menuBar().addMenu("&Help")
 
         # Create action that adds student
         add_student_action = QAction(QIcon("icons/add.png"), "Add Student", self)
@@ -37,6 +45,7 @@ class MainWindow(QMainWindow):
 
         # Add 'about' action
         about_action = QAction("About", self)
+        about_action.triggered.connect(self.about)
         help_menu_item.addAction(about_action)
 
         # Create 'search' action
@@ -103,7 +112,6 @@ class MainWindow(QMainWindow):
             cur.close()
         return courses
         
-
     def insert(self):
         # Initialize Dialog
         dialog = InsertDialog()
@@ -121,6 +129,11 @@ class MainWindow(QMainWindow):
     def delete(self):
         dialog = DeleteDialog()
         dialog.exec()
+
+    def about(self):
+        dialog = AboutDialog()
+        dialog.exec()
+
 
 class InsertDialog(QDialog):
     def __init__(self) -> None:
@@ -165,7 +178,7 @@ class InsertDialog(QDialog):
         name = self.name_line_edit.text()
         course = self.course_combo.itemText(self.course_combo.currentIndex())
         number = self.phone_line_edit.text()
-        with sqlite3.connect("database.db") as db:
+        with DatabaseConnection().connect() as db:
             cur = db.cursor()
             cur.execute(
                 f'INSERT INTO students(name, course, mobile) VALUES ("{name}","{course}",{number})'
@@ -220,6 +233,7 @@ class EditDialog(QDialog):
         self.setFixedWidth(250)
         grid = QGridLayout()
 
+        # Take data from selected row
         index = main_window.table.currentRow()
         student_name = main_window.table.item(index,1).text()
         course_name = main_window.table.item(index,2).text()
@@ -259,11 +273,13 @@ class EditDialog(QDialog):
         self.setLayout(grid)
         
     def edit(self):
+        # Data for overwrite
         name = self.name_line_edit.text()
         course = self.course_combo.itemText(self.course_combo.currentIndex())
         number = self.phone_line_edit.text()
         
-        with sqlite3.connect("database.db") as db:
+        # Update data in db
+        with DatabaseConnection().connect() as db:
             cur = db.cursor()
             cur.execute(
                 f'UPDATE students SET name="{name}", course="{course}",mobile={number} WHERE id = {self.student_id}'
@@ -282,18 +298,21 @@ class DeleteDialog(QDialog):
         
         grid = QGridLayout()
         
+        # Take current student id
         index = main_window.table.currentRow()
         self.student_id = main_window.table.item(index,0).text()
         
+        #Create label
         info_label = QLabel("Are you sure you want to delete this record?")
         
+        # Create buttons
         confirm_button = QPushButton("Yes")
         confirm_button.clicked.connect(self.delete)
         
         dismiss_button = QPushButton("No")
         dismiss_button.clicked.connect(self.close)
         
-        
+        # Add widgets to layout
         grid.addWidget(info_label, 0, 0,1,0,Qt.AlignmentFlag.AlignCenter)
         
         grid.addWidget(confirm_button, 1, 0)
@@ -302,7 +321,8 @@ class DeleteDialog(QDialog):
         self.setLayout(grid)
     
     def delete(self):
-        with sqlite3.connect("database.db") as db:
+        # Delete row from db
+        with DatabaseConnection().connect() as db:
             cur = db.cursor()
             cur.execute(
                 f'DELETE FROM students WHERE id = {self.student_id}'
@@ -312,12 +332,24 @@ class DeleteDialog(QDialog):
         main_window.load_data()
         self.close()
         
+        # Show confirmation message
         confirmation_widget = QMessageBox()
         confirmation_widget.setWindowTitle("Success")
         confirmation_widget.setText("The record was deleted successfully!")
         confirmation_widget.exec()
         
-        
+
+class AboutDialog(QMessageBox):
+    def __init__(self) -> None:
+        super().__init__()
+        content = """
+        This app was created during an Udemy course. It allows the user to manipulate
+        the data inside the 'students' database. Some of the funcionalities are from that
+        course and other are added by me.
+        Feel free to modify and reuse this app!
+        """
+        self.setText(content)
+
 
 app = QApplication(sys.argv)
 main_window = MainWindow()
