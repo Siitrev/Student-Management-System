@@ -93,7 +93,14 @@ class MainWindow(QMainWindow):
         
         self.statusbar.addWidget(edit_btn)
         self.statusbar.addWidget(del_btn)
-        
+    
+    def load_course_data(self) -> tuple:
+        with sqlite3.connect("database.db") as db:
+            cur = db.cursor()
+            cur.execute("SELECT * FROM courses ORDER BY name ASC")
+            courses = (x[1] for x in cur.fetchall())
+            cur.close()
+        return courses
         
 
     def insert(self):
@@ -117,7 +124,7 @@ class MainWindow(QMainWindow):
 class InsertDialog(QDialog):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Student Management System")
+        self.setWindowTitle("Add Student")
         self.setFixedHeight(150)
         self.setFixedWidth(250)
         grid = QGridLayout()
@@ -129,7 +136,7 @@ class InsertDialog(QDialog):
         # Create course widgets
         course_label = QLabel("Course")
         self.course_combo = QComboBox()
-        self.course_combo.addItems(self.load_course_data())
+        self.course_combo.addItems(main_window.load_course_data())
 
         # Create phone widgets
         phone_label = QLabel("Phone")
@@ -153,18 +160,10 @@ class InsertDialog(QDialog):
 
         self.setLayout(grid)
 
-    def load_course_data(self) -> tuple:
-        with sqlite3.connect("database.db") as db:
-            cur = db.cursor()
-            cur.execute("SELECT * FROM courses ORDER BY name ASC")
-            courses = (x[1] for x in cur.fetchall())
-            cur.close()
-        return courses
-
     def add_student(self):
         name = self.name_line_edit.text()
         course = self.course_combo.itemText(self.course_combo.currentIndex())
-        number = int(self.phone_line_edit.text())
+        number = self.phone_line_edit.text()
         with sqlite3.connect("database.db") as db:
             cur = db.cursor()
             cur.execute(
@@ -208,8 +207,65 @@ class SearchDialog(QDialog):
 
 
 class EditDialog(QDialog):
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
+        self.setWindowTitle("Edit Student Information")
+        self.setFixedHeight(150)
+        self.setFixedWidth(250)
+        grid = QGridLayout()
+
+        index = main_window.table.currentRow()
+        student_name = main_window.table.item(index,1).text()
+        course_name = main_window.table.item(index,2).text()
+        phone_number = main_window.table.item(index,3).text()
+        
+        # Create name widgets
+        name_label = QLabel("Name")
+        self.name_line_edit = QLineEdit(student_name)
+
+        # Create course widgets
+        course_label = QLabel("Course")
+        self.course_combo = QComboBox()
+        self.course_combo.addItems(main_window.load_course_data())
+        self.course_combo.setCurrentText(course_name)
+
+        # Create phone widgets
+        phone_label = QLabel("Phone")
+        self.phone_line_edit = QLineEdit(phone_number)
+
+        # Create button widget
+        submit_btn = QPushButton("Submit")
+        submit_btn.clicked.connect(self.edit)
+
+        # Add widgets to grid
+        grid.addWidget(name_label, 0, 0)
+        grid.addWidget(self.name_line_edit, 0, 1)
+
+        grid.addWidget(course_label, 1, 0)
+        grid.addWidget(self.course_combo, 1, 1)
+
+        grid.addWidget(phone_label, 2, 0)
+        grid.addWidget(self.phone_line_edit, 2, 1)
+
+        grid.addWidget(submit_btn, 3, 0, 1, 0)
+
+        self.setLayout(grid)
+        
+    def edit(self):
+        name = self.name_line_edit.text()
+        course = self.course_combo.itemText(self.course_combo.currentIndex())
+        number = self.phone_line_edit.text()
+        student_id = main_window.table.item(main_window.table.currentRow(),0).text()
+        
+        with sqlite3.connect("database.db") as db:
+            cur = db.cursor()
+            cur.execute(
+                f'UPDATE students SET name="{name}", course="{course}",mobile={number} WHERE id = {student_id}'
+            )
+            db.commit()
+            cur.close()
+        main_window.load_data()
+        self.close()
 
 
 class DeleteDialog(QDialog):
