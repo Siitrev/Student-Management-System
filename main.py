@@ -38,6 +38,7 @@ class MainWindow(QMainWindow):
         # Create 'add course' action
         add_course_action = QAction("Add Course", self)
         add_course_action.triggered.connect(self.insert_course)
+        file_menu_item.addAction(add_course_action)
 
         # Add 'about' action
         about_action = QAction("About", self)
