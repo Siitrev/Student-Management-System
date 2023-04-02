@@ -15,7 +15,7 @@ class DeleteStudentDialog(QDialog):
         super().__init__()
         self.setFixedHeight(100)
         self.setFixedWidth(300)
-
+        self.main_window = main_window
         grid = QGridLayout()
 
         # Take current student id
@@ -40,18 +40,18 @@ class DeleteStudentDialog(QDialog):
 
         self.setLayout(grid)
 
-        def delete(self):
-            # Delete row from db
-            with DatabaseConnection().connect() as db:
-                cur = db.cursor()
-                cur.execute(f"DELETE FROM students WHERE id = {self.student_id}")
-                db.commit()
-                cur.close()
-            main_window.load_data()
-            self.close()
+    def delete(self):
+        # Delete row from db
+        with DatabaseConnection().connect() as db:
+            cur = db.cursor()
+            cur.execute(f"DELETE FROM students WHERE id = {self.student_id}")
+            db.commit()
+            cur.close()
+        self.main_window.load_data()
+        self.close()
 
-            # Show confirmation message
-            confirmation_widget = QMessageBox()
-            confirmation_widget.setWindowTitle("Success")
-            confirmation_widget.setText("The record was deleted successfully!")
-            confirmation_widget.exec()
+        # Show confirmation message
+        confirmation_widget = QMessageBox()
+        confirmation_widget.setWindowTitle("Success")
+        confirmation_widget.setText("The record was deleted successfully!")
+        confirmation_widget.exec()

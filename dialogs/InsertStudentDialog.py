@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
 )
 from utils.DatabaseConnection import DatabaseConnection
+from utils.Validation import *
 
 
 class InsertStudentDialog(QDialog):
@@ -52,19 +53,39 @@ class InsertStudentDialog(QDialog):
         self.setLayout(grid)
 
     def add_student(self):
-        name = self.name_line_edit.text()
-        course = self.course_combo.itemText(self.course_combo.currentIndex())
-        number = self.phone_line_edit.text()
-        with DatabaseConnection().connect() as db:
-            cur = db.cursor()
-            cur.execute(
-                f'INSERT INTO students(name, course, mobile) VALUES ("{name}","{course}",{number})'
-            )
-            db.commit()
-            cur.close()
-        self.main_window.load_data()
+        try:
+            name = self.name_line_edit.text().strip()
+            course = self.course_combo.itemText(self.course_combo.currentIndex())
+            number = self.phone_line_edit.text().strip()
+            
+            # Validating the data
+            name_validation(name)
+            phone_validation(number)
+            
+            with DatabaseConnection().connect() as db:
+                cur = db.cursor()
+                cur.execute(
+                    f'INSERT INTO students(name, course, mobile) VALUES ("{name.lower().title()}","{course}",{number})'
+                )
+                db.commit()
+                cur.close()
+            self.main_window.load_data()
 
-        confirmation_widget = QMessageBox()
-        confirmation_widget.setWindowTitle("Success")
-        confirmation_widget.setText("The record was added successfully!")
-        confirmation_widget.exec()
+            confirmation_widget = QMessageBox()
+            confirmation_widget.setWindowTitle("Success")
+            confirmation_widget.setText("The record was added successfully!")
+            confirmation_widget.exec()
+        except NameValidaionException:
+            error_widget = QMessageBox()
+            error_widget.setWindowTitle("Error!")
+            error_widget.setText(
+                "Name should only consist of lower-/uppercase letters."
+            )
+            error_widget.exec()
+        except PhoneValidaionException:
+            error_widget = QMessageBox()
+            error_widget.setWindowTitle("Error!")
+            error_widget.setText(
+                "Phone number should look like: (+xx)xxxxxxxxx or xxxxxxxxx."
+            )
+            error_widget.exec()
