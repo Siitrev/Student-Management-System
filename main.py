@@ -11,6 +11,7 @@ from utils.DatabaseConnection import DatabaseConnection
 from dialogs import (
     AboutDialog,
     DeleteStudentDialog,
+    DeleteStudentsDialog,
     EditDialog,
     InsertCourseDialog,
     InsertStudentDialog,
@@ -72,8 +73,8 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.statusbar)
 
         # Detect a cell click
-        self.table.cellClicked.connect(self.cell_clicked)
-
+        self.table.selectionModel().selectionChanged.connect(self.cell_clicked)
+        
     def load_data(self):
         self.table.setRowCount(0)
         with DatabaseConnection().connect() as db:
@@ -85,13 +86,20 @@ class MainWindow(QMainWindow):
                     self.table.setItem(row, col, QTableWidgetItem(str(col_data)))
             cur.close()
 
-    def cell_clicked(self):
+    def cell_clicked(self, selected, deselected):
+        selected_cells = self.table.selectedIndexes()
+        
         edit_btn = QPushButton("Edit Record")
         edit_btn.clicked.connect(self.edit)
+        
+        if len(selected_cells) == 1:
+            del_btn = QPushButton("Delete Record")
+            del_btn.clicked.connect(self.delete)
+        else:
+            del_btn = QPushButton("Delete Records")
+            del_btn.clicked.connect(self.delete_multiple)
 
-        del_btn = QPushButton("Delete Record")
-        del_btn.clicked.connect(self.delete)
-
+        # Remove old buttons
         for i in self.statusbar.findChildren(QPushButton):
             self.statusbar.removeWidget(i)
 
@@ -127,6 +135,10 @@ class MainWindow(QMainWindow):
 
     def delete(self):
         dialog = DeleteStudentDialog.DeleteStudentDialog(self)
+        dialog.exec()
+    
+    def delete_multiple(self):
+        dialog = DeleteStudentsDialog.DeleteStudentsDialog(self)
         dialog.exec()
 
     def about(self):

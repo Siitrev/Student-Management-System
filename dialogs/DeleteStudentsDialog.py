@@ -18,12 +18,14 @@ class DeleteStudentsDialog(QDialog):
         self.main_window = main_window
         grid = QGridLayout()
 
-        # Take current student id
-        index = main_window.table.currentRow()
-        self.student_id = main_window.table.item(index, 0).text()
+        # Take current students id
+        indexes = main_window.table.selectedIndexes()
+        self.students_ids = set()
+        for i in indexes:
+            self.students_ids.add(main_window.table.item(i.row(), 0).text())    
 
         # Create label
-        info_label = QLabel("Are you sure you want to delete this record?")
+        info_label = QLabel("Are you sure you want to delete this records?")
 
         # Create buttons
         confirm_button = QPushButton("Yes")
@@ -43,15 +45,16 @@ class DeleteStudentsDialog(QDialog):
     def delete(self):
         # Delete row from db
         with DatabaseConnection().connect() as db:
-            cur = db.cursor()
-            cur.execute(f"DELETE FROM students WHERE id = {self.student_id}")
-            db.commit()
-            cur.close()
+            for i in self.students_ids:
+                cur = db.cursor()
+                cur.execute(f"DELETE FROM students WHERE id = {i}")
+                db.commit()
+                cur.close()
         self.main_window.load_data()
         self.close()
 
         # Show confirmation message
         confirmation_widget = QMessageBox()
         confirmation_widget.setWindowTitle("Success")
-        confirmation_widget.setText("The record was deleted successfully!")
+        confirmation_widget.setText("The records were deleted successfully!")
         confirmation_widget.exec()
