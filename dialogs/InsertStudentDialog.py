@@ -71,10 +71,13 @@ class InsertStudentDialog(QDialog):
                 cur.close()
             self.main_window.load_data()
 
+            #Show confirmation message
             confirmation_widget = QMessageBox()
             confirmation_widget.setWindowTitle("Success")
             confirmation_widget.setText("The record was added successfully!")
             confirmation_widget.exec()
+            
+            #Show error message
         except NameValidaionException:
             error_widget = QMessageBox()
             error_widget.setWindowTitle("Error!")
