@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt
 from utils.DatabaseConnection import DatabaseConnection
 
 
-class DeleteStudentsDialog(QDialog):
+class DeleteStudentDialog(QDialog):
     def __init__(self, main_window: QMainWindow) -> None:
         super().__init__()
         self.setFixedHeight(100)
